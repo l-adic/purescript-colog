@@ -1,0 +1,23 @@
+package:
+  name: colog
+  dependencies:
+    - colog-core
+    - prelude
+    - effect
+    - console
+    - contravariant
+    - transformers
+    - maybe
+    - either
+    - foldable-traversable
+    - ansi
+    - now
+    - datetime
+    - formatters
+  test:
+    main: Test.Colog
+    dependencies:
+      - spec
+      - spec-node
+      - arrays
+      - refs

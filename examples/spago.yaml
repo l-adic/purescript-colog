@@ -1,0 +1,8 @@
+package:
+  name: examples
+  dependencies:
+    - colog
+    - prelude
+    - effect
+    - foldable-traversable
+    - node-fs

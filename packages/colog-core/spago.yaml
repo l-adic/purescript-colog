@@ -1,0 +1,20 @@
+package:
+  name: colog-core
+  dependencies:
+    - prelude
+    - effect
+    - console
+    - contravariant
+    - node-fs
+    - transformers
+    - maybe
+    - either
+    - tuples
+    - foldable-traversable
+  test:
+    main: Test.CologCore
+    dependencies:
+      - spec
+      - spec-node
+      - arrays
+      - refs
