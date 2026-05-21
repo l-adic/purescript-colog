@@ -1,50 +1,67 @@
 -- | Timing spans: run an action, log how long it took.
 -- |
--- | Backed by `Effect.Aff.bracket`, PureScript's native exception- and
--- | cancellation-safe bracket: the duration is recorded in the release step,
--- | which always runs — even if the body throws or the fibre is killed — and
--- | the original outcome (value or exception) is preserved afterwards.
+-- | Monad-agnostic: it reads the logger from context (`WithLog`/`HasLog`), the
+-- | clock via `MonadEffect`, and gets exception-safety from `MonadError` — so it
+-- | works in any stack that provides those (transformer stacks, `purescript-run`
+-- | with an except effect, your own app monad, …), not just `LoggerT`.
 -- |
--- | The span emits a structured `SpanInfo` carrying the duration as a typed
--- | `Milliseconds` field; how that is rendered is the consumer's choice (via
--- | `cmap`/`fmtSpan`), not baked into the combinator.
+-- | The duration is logged even when the body throws, after which the error
+-- | propagates. The measured `SpanInfo` keeps the duration as a typed
+-- | `Milliseconds` field; `withSpanBy` chooses how to render it.
 module Colog.Span
   ( SpanInfo
   , withSpan
+  , withSpanBy
   , fmtSpan
   ) where
 
 import Prelude
 
-import Colog.Core.Action (LogAction, (<&))
 import Colog.Core.Severity (Severity(..))
 import Colog.Message (Message, Msg(..))
+import Colog.Monad (class WithLog, logMsg)
+import Control.Monad.Error.Class (class MonadError, throwError, try)
 import Data.DateTime.Instant (unInstant)
+import Data.Either (either)
 import Data.Newtype (unwrap)
 import Data.Time.Duration (Milliseconds(..))
-import Effect.Aff (Aff, bracket)
-import Effect.Class (liftEffect)
+import Effect.Class (class MonadEffect, liftEffect)
 import Effect.Now (now)
 
 -- | What a span reports: a label and the measured duration.
 type SpanInfo = { label :: String, duration :: Milliseconds }
 
--- | Run an `Aff` action and log a `SpanInfo` with the measured duration. The
--- | duration is logged whether the action succeeds, throws, or is cancelled;
--- | on failure the exception still propagates afterwards.
-withSpan :: forall a. LogAction Aff SpanInfo -> String -> Aff a -> Aff a
-withSpan logger label action =
-  bracket
-    (liftEffect now)
-    ( \start -> do
-        end <- liftEffect now
-        let duration = Milliseconds (unwrap (unInstant end) - unwrap (unInstant start))
-        logger <& { label, duration }
-    )
-    (\_ -> action)
+-- | Time an action and log the span (as a `Message`, via `fmtSpan`).
+withSpan
+  :: forall env m e a
+   . WithLog env Message m
+  => MonadEffect m
+  => MonadError e m
+  => String
+  -> m a
+  -> m a
+withSpan = withSpanBy fmtSpan
 
--- | A default rendering of a `SpanInfo` as a `Message` (at `Info`). Compose it
--- | with any `Message` consumer: `fmtSpan >$< richMessageStdout`.
+-- | `withSpan` with a custom rendering of the `SpanInfo` into the context's
+-- | message type — keep the duration structured (JSON, metrics, …) if you like.
+withSpanBy
+  :: forall env msg m e a
+   . WithLog env msg m
+  => MonadEffect m
+  => MonadError e m
+  => (SpanInfo -> msg)
+  -> String
+  -> m a
+  -> m a
+withSpanBy toMsg label action = do
+  start <- liftEffect now
+  result <- try action
+  end <- liftEffect now
+  let duration = Milliseconds (unwrap (unInstant end) - unwrap (unInstant start))
+  logMsg (toMsg { label, duration })
+  either throwError pure result
+
+-- | Default rendering of a `SpanInfo` as a `Message` (at `Info`).
 fmtSpan :: SpanInfo -> Message
 fmtSpan { label, duration } =
   Msg { severity: Info, text: label <> " took " <> show (unwrap duration) <> "ms" }

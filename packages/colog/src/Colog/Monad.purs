@@ -19,10 +19,12 @@ import Prelude
 
 import Colog.Core.Action (LogAction(..), hoistLogAction)
 import Colog.Core.Class (class HasLog, getLogAction, overLogAction)
+import Control.Monad.Error.Class (class MonadError, class MonadThrow)
 import Control.Monad.Reader.Class (class MonadAsk, class MonadReader, asks, local)
 import Control.Monad.Reader.Trans (ReaderT, runReaderT)
 import Control.Monad.Trans.Class (class MonadTrans, lift)
 import Data.Foldable (class Foldable, traverse_)
+import Effect.Aff.Class (class MonadAff)
 import Effect.Class (class MonadEffect)
 
 -- | A `ReaderT` that keeps a `LogAction` in its context. The context's monad is
@@ -39,6 +41,9 @@ derive newtype instance Applicative m => Applicative (LoggerT msg m)
 derive newtype instance Bind m => Bind (LoggerT msg m)
 derive newtype instance Monad m => Monad (LoggerT msg m)
 derive newtype instance MonadEffect m => MonadEffect (LoggerT msg m)
+derive newtype instance MonadAff m => MonadAff (LoggerT msg m)
+derive newtype instance MonadThrow e m => MonadThrow e (LoggerT msg m)
+derive newtype instance MonadError e m => MonadError e (LoggerT msg m)
 derive newtype instance Monad m => MonadAsk (LogAction (LoggerT msg m) msg) (LoggerT msg m)
 derive newtype instance Monad m => MonadReader (LogAction (LoggerT msg m) msg) (LoggerT msg m)
 

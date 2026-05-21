@@ -9,3 +9,5 @@ package:
     - aff
     - datetime
     - exceptions
+    - transformers
+    - either

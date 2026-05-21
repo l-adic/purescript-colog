@@ -13,4 +13,4 @@ import Colog.Message (Message, Msg(..), SimpleMsg(..), fmtMessage, fmtMessageCol
 import Colog.Actions (logMessageFile, logMessageStderr, logMessageStdout, richMessageFile, richMessageStderr, richMessageStdout)
 import Colog.Monad (class WithLog, LoggerT(..), liftLogAction, logMsg, logMsgs, runLoggerT, usingLoggerT, withLog)
 import Colog.Rich (RichMsg(..), defaultFields, fmtRichDefault, nowUTC, showTime, withFields)
-import Colog.Span (SpanInfo, fmtSpan, withSpan)
+import Colog.Span (SpanInfo, fmtSpan, withSpan, withSpanBy)

@@ -325,10 +325,12 @@
             "colog",
             "datetime",
             "effect",
+            "either",
             "exceptions",
             "foldable-traversable",
             "node-fs",
-            "prelude"
+            "prelude",
+            "transformers"
           ],
           "build_plan": [
             "aff",
