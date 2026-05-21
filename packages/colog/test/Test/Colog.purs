@@ -2,13 +2,18 @@ module Test.Colog where
 
 import Prelude
 
-import Colog (LogAction(..), Message, Msg(..), RichMsg(..), Severity(..), cmap, fmtMessage, fmtRichDefault, logDebug, logInfo, showSeverityColored, showTime, usingLoggerT, withLog)
-import Data.Array (length, snoc)
+import Colog (LogAction(..), Message, Msg(..), RichMsg(..), Severity(..), SpanInfo, cmap, fmtMessage, fmtRichDefault, logDebug, logInfo, showSeverityColored, showTime, usingLoggerT, withLog, withSpan)
+import Data.Array (head, length, snoc)
 import Data.DateTime (DateTime)
+import Data.Either (isLeft)
+import Data.Maybe (Maybe(..))
 import Data.String (Pattern(..), contains)
 import Data.String.Common (joinWith)
+import Data.Time.Duration (Milliseconds(..))
 import Effect (Effect)
+import Effect.Aff (attempt, delay)
 import Effect.Class (liftEffect)
+import Effect.Exception (error, throwException)
 import Effect.Ref as Ref
 import Test.Spec (Spec, describe, it)
 import Test.Spec.Assertions (shouldEqual)
@@ -69,3 +74,21 @@ spec = describe "Colog" do
           }
       result <- liftEffect $ fmtRichDefault fmtMessage rm
       result `shouldEqual` (showTime fixedTime <> fmtMessage (Msg { severity: Debug, text: "z" }))
+
+  describe "withSpan (bracket-backed timing)" do
+    it "emits a SpanInfo with the label and a duration field" do
+      ref <- liftEffect $ Ref.new []
+      let cap = LogAction \(s :: SpanInfo) -> liftEffect (Ref.modify_ (\a -> snoc a s) ref)
+      _ <- withSpan cap "ok" (delay (Milliseconds 5.0))
+      out <- liftEffect $ Ref.read ref
+      length out `shouldEqual` 1
+      (_.label <$> head out) `shouldEqual` Just "ok"
+
+    it "logs the duration even when the body throws, then rethrows" do
+      ref <- liftEffect $ Ref.new []
+      let cap = LogAction \(s :: SpanInfo) -> liftEffect (Ref.modify_ (\a -> snoc a s) ref)
+      result <- attempt $ withSpan cap "boom" (liftEffect (throwException (error "x")))
+      out <- liftEffect $ Ref.read ref
+      isLeft result `shouldEqual` true -- the exception propagated
+      length out `shouldEqual` 1 -- but the span was still logged
+      (_.label <$> head out) `shouldEqual` Just "boom"

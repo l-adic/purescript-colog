@@ -5,6 +5,7 @@
         "path": "packages/colog",
         "core": {
           "dependencies": [
+            "aff",
             "ansi",
             "colog-core",
             "console",
@@ -15,6 +16,7 @@
             "foldable-traversable",
             "formatters",
             "maybe",
+            "newtype",
             "now",
             "prelude",
             "transformers"
@@ -83,6 +85,7 @@
         "test": {
           "dependencies": [
             "arrays",
+            "exceptions",
             "refs",
             "spec",
             "spec-node"
@@ -318,8 +321,11 @@
         "path": "examples",
         "core": {
           "dependencies": [
+            "aff",
             "colog",
+            "datetime",
             "effect",
+            "exceptions",
             "foldable-traversable",
             "node-fs",
             "prelude"
